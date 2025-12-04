@@ -16,7 +16,7 @@ Dicho buffer se encuentra en la dirección física de memoria `0xF151C000` y sol
 
 Como las direcciones que utilizamos viven por fuera de los 817MB definidos en los segmentos, asumimos que los segmentos de codigo y datos de nivel 0 y 3 ocupan toda la memoria (4 GB)
 
-![Flujo del sistema](./img/esquema_cartucho.png)
+![Flujo del sistema](../img/esquema_cartucho.png)
 
 ## Ejercicio 1:
 - a) Programar la rutina que atenderá la interrupción que el lector de cartuchos generará al terminar de llenar el buffer.

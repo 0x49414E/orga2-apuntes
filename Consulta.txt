@@ -1,0 +1,57 @@
+Y esta funcion resuelve esta problematica?/**
+zurgy
+ * copy_page copia el contenido de la página física localizada en la dirección src_addr a la página física ubicada en dst_addr
+ * @param dst_addr la dirección a cuya página queremos copiar el contenido
+ * @param src_addr la dirección de la página cuyo contenido queremos copiar
+ *
+ * Esta función mapea ambas páginas a las direcciones SRC_VIRT_PAGE y DST_VIRT_PAGE, respectivamente, realiza
+ * la copia y luego desmapea las páginas. Usar la función rcr3 definida en i386.h para obtener el cr3 actual
+ */
+void copy_page(paddr_t dst_addr, paddr_t src_addr) {
+  uint32_t cr3 = rcr3();
+  mmu_map_page(cr3, SRC_VIRT_PAGE, src_addr, MMU_P | MMU_W | MMU_U); // hay que fijarse
+  mmu_map_page(cr3, DST_VIRT_PAGE, dst_addr, MMU_P | MMU_W | MMU_U);  uint32_t* dst_addr_ptr = (uint32_t*)dst_addr;
+  uint32_t* src_addr_ptr = (uint32_t*)src_addr;
+  for (size_t i = 0; i < PAGE_SIZE / 4; i++) 
+  {
+    *(dst_addr_ptr + i) = *(src_addr_ptr + i);  
+  }
+  mmu_unmap_page(cr3, SRC_VIRT_PAGE);
+  mmu_unmap_page(cr3, DST_VIRT_PAGE);
+}Por ejemplo si quiero copiar memoria de una tarea a otra, puedo traducir a fisica y usar esta funcion?Mostrar menos¡Exacto! Esta función resuelve precisamente esa problemática, pero tiene un error crítico en la implementación actual.
+El problema que resuelve:
+Cuando el kernel necesita copiar contenido entre páginas físicas arbitrarias (por ejemplo, de una tarea a otra), no puede simplemente usar las direcciones físicas directamente porque:
+
+La MMU siempre traduce direcciones virtuales → físicas
+Las páginas físicas de las tareas pueden no estar mapeadas en el espacio de direcciones actual
+
+La solución (mapeo temporal):
+
+Mapea la página física origen a una dirección virtual temporal (SRC_VIRT_PAGE)
+Mapea la página física destino a otra dirección virtual temporal (DST_VIRT_PAGE)
+Copia usando esas direcciones virtuales
+Desmapea ambas páginas
+
+EL ERROR en tu código:
+cuint32_t* dst_addr_ptr = (uint32_t*)dst_addr;  // ❌ INCORRECTO
+uint32_t* src_addr_ptr = (uint32_t*)src_addr;  // ❌ INCORRECTO
+Deberían usar las direcciones virtuales mapeadas:
+cuint32_t* dst_addr_ptr = (uint32_t*)DST_VIRT_PAGE;  // ✓ CORRECTO
+uint32_t* src_addr_ptr = (uint32_t*)SRC_VIRT_PAGE;  // ✓ CORRECTO
+Código corregido:
+cvoid copy_page(paddr_t dst_addr, paddr_t src_addr) {
+  uint32_t cr3 = rcr3();
+  mmu_map_page(cr3, SRC_VIRT_PAGE, src_addr, MMU_P | MMU_W);
+  mmu_map_page(cr3, DST_VIRT_PAGE, dst_addr, MMU_P | MMU_W);
+  
+  uint32_t* dst_ptr = (uint32_t*)DST_VIRT_PAGE;  // ✓
+  uint32_t* src_ptr = (uint32_t*)SRC_VIRT_PAGE;  // ✓
+  
+  for (size_t i = 0; i < PAGE_SIZE / 4; i++) {
+    dst_ptr[i] = src_ptr[i];  
+  }
+  
+  mmu_unmap_page(cr3, SRC_VIRT_PAGE);
+  mmu_unmap_page(cr3, DST_VIRT_PAGE);
+}
+Sí, puedes usar esta función para copiar memoria entre tareas traduciendo primero las direcciones virtuales a físicas de cada tarea.

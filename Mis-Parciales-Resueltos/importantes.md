@@ -114,7 +114,7 @@ Codigo para saltar a la proxima tarea.
 ESP0/SS0: Para syscalls e interrupciones (cambio de privilegio dentro de la misma tarea). Si va de ring 3 a ring 0, como sabe cual stack tenia el kernel?? facil, lo guardo y listo.
 ESP, EIP, registros generales: Para task switching completo entre tareas diferentes
 
-El kernel tiene identity mapping en el primer MiB de memoria
+El kernel tiene identity mapping en el primer MiB de memoria. Todas las tareas deben tener el identity mapping del kernel.
 
 EFLAGS: Registro de estado y control del procesador (32 bits)
 
@@ -139,5 +139,22 @@ EFLAGS: Registro de estado y control del procesador (32 bits)
 
 Hacer un punta a punta de todo el sistema. Es recomendable ver la resolucion del 2p de maca.
 
+Primero las syscalls, luego el IDT_ENTRY, luego el assembler, luego las estructuras necesarias.
 
 De la 32 hasta la 39 atiende el pic1. De la 40 a la 47 atiende el pic2.
+
+Un MiB son 0x100000 bytes.
+Un KiB son 0x400 bytes.
+
+Un MB son 1_000_000 bytes
+Un KB son 1_000 bytes.
+
+* **VIRT_PAGE_DIR(X)**: Dada X una dirección virtual calcula el índice dentro del directorio de páginas de la PDE asociada.
+
+* **VIRT_PAGE_TABLE(X)**: Dada X una dirección virtual calcula el índice dentro de la tabla de páginas de la PTE asociada.
+
+* **VIRT_PAGE_OFFSET(X)**: Dada X una dirección devuelve el offset dentro de su página.
+
+* **CR3_TO_PAGE_DIR(X)**: Obtiene la dirección física del directorio donde X es el contenido del registro CR3.
+
+* **MMU_ENTRY_PADDR(X)**: Obtiene la dirección física correspondiente, donde X es el campo address de 20 bits en una entrada de la tabla de páginas o del page directory
