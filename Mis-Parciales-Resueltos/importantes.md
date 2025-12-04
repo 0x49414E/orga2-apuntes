@@ -86,6 +86,29 @@ paddr_t create_cr3_for_kernel_task() {
     }
     return task_page_dir;
 }
+
+/**
+ * zero_page pone en cero el contenido de una página física
+ * @param addr la dirección física de la página que queremos zerear
+ */
+void zero_page(paddr_t addr) {
+  uint32_t cr3 = rcr3();
+  
+  // Mapear la página física a una dirección virtual temporal
+  mmu_map_page(cr3, TEMP_VIRT_PAGE, addr, MMU_P | MMU_W);
+  
+  // Zerear usando la dirección virtual
+  uint32_t* ptr = (uint32_t*)TEMP_VIRT_PAGE;
+  for (size_t i = 0; i < PAGE_SIZE / 4; i++) {
+    ptr[i] = 0;
+  }
+  
+  // Alternativamente, puedes usar memset:
+  // memset((void*)TEMP_VIRT_PAGE, 0, PAGE_SIZE);
+  
+  // Desmapear
+  mmu_unmap_page(cr3, TEMP_VIRT_PAGE);
+}
 ```
 
 Siempre que atendemos una interrupcion de kernel, debemos hacerle saber al CPU que ya la atendimos. Para ello nos comunicamos con el PIC.
@@ -158,3 +181,7 @@ Un KB son 1_000 bytes.
 * **CR3_TO_PAGE_DIR(X)**: Obtiene la dirección física del directorio donde X es el contenido del registro CR3.
 
 * **MMU_ENTRY_PADDR(X)**: Obtiene la dirección física correspondiente, donde X es el campo address de 20 bits en una entrada de la tabla de páginas o del page directory
+
+**SIEMPRE ACLARAR CONVENCION DE PASAJE DE ARGUMENTOS**
+
+Si finaliza una tarea quizas lo ideal es hacer un jmp $ para evitar que ejecute codigo basura.
